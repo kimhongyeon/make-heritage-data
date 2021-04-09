@@ -1,0 +1,19 @@
+{
+  "name": "getheritagedata",
+  "version": "1.0.0",
+  "description": "문화재 정보 긁어오기",
+  "main": "app.js",
+  "scripts": {
+    "build": "tsc --build",
+    "clean": "tsc --build --clean",
+    "prestart": "npm run build",
+    "start": "tsc-watch --onSuccess 'node dist/app.js'"
+  },
+  "author": "Kim Hongyeon",
+  "license": "ISC",
+  "dependencies": {
+    "@types/node": "^14.14.37",
+    "axios": "^0.21.1",
+    "fast-xml-parser": "^3.19.0"
+  }
+}
