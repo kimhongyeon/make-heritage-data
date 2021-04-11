@@ -106,5 +106,7 @@ dist
 # Mac
 .DS_Store
 
-# resultData
+# myProejct
 data/
+temp_model.js
+test.http
