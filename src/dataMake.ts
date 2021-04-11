@@ -8,15 +8,25 @@ import { ClassData } from "./interfaces/ClassData";
 import { EntityData } from "./interfaces/EntityData";
 import { TableClasses } from "./database/interfaces/Classes";
 import { TableEntities } from "./database/interfaces/Entities";
+import { TableAdmins } from "./database/interfaces/Admins";
+import { TableOwners } from "./database/interfaces/Owners";
+import { AgeData } from "./interfaces/AgeData";
+import { TableAges } from "./database/interfaces/Ages";
 
 class DataMake {
     private tableName: string;
-    protected list: ImageData[] | MovieData[] | ClassData[] | EntityData[];
+    protected list:
+        | ImageData[]
+        | MovieData[]
+        | ClassData[]
+        | EntityData[]
+        | AgeData[];
     protected dataSet:
         | TableImages[]
         | TableMovies[]
         | TableClasses[]
-        | TableEntities[];
+        | TableEntities[]
+        | TableAges[];
 
     constructor(tableName: string) {
         this.tableName = tableName;
@@ -226,8 +236,23 @@ class EntityDataMake extends DataMake {
     protected list: EntityData[];
     protected dataSet: TableEntities[];
 
-    constructor(tableName: string) {
+    private adminTableName: string;
+    private adminDataSet: TableAdmins[];
+
+    private ownerTableName: string;
+    private ownerDataSet: TableOwners[];
+
+    constructor(
+        tableName: string,
+        adminTableName: string,
+        ownerTableName: string
+    ) {
         super(tableName);
+        this.adminTableName = adminTableName;
+        this.ownerTableName = ownerTableName;
+
+        this.adminDataSet = [];
+        this.ownerDataSet = [];
     }
 
     getList(): EntityData[] {
@@ -237,7 +262,7 @@ class EntityDataMake extends DataMake {
     setList(list: any[]): void {
         this.list = list.reduce(
             (results, { item: { ccbaPoss, ccbaAdmin } }) => {
-                const setResults = (ary: any[], str): any[] => {
+                const setResults = (ary: any[], str: string): any[] => {
                     const existObj = ary.find(({ name }) => name === str);
                     if (existObj === undefined) {
                         results.push({
@@ -261,11 +286,125 @@ class EntityDataMake extends DataMake {
         );
     }
 
+    getAdminLastDataId(): number {
+        if (this.adminDataSet.length > 0) {
+            return this.adminDataSet[this.adminDataSet.length - 1].id;
+        } else {
+            return null;
+        }
+    }
+
+    getOwnerLastDataId(): number {
+        if (this.ownerDataSet.length > 0) {
+            return this.ownerDataSet[this.ownerDataSet.length - 1].id;
+        } else {
+            return null;
+        }
+    }
+
     getNewData(data: EntityData): TableEntities {
         const lastDataId: number = this.getLastDataId();
         const newId: number = lastDataId === null ? 1 : lastDataId + 1;
 
         const newData: TableEntities = {
+            id: newId,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            name: data.name,
+        };
+
+        return newData;
+    }
+
+    getAdminNewData(data: TableEntities) {
+        const lastDataId: number = this.getAdminLastDataId();
+        const newId: number = lastDataId === null ? 1 : lastDataId + 1;
+
+        const newData: TableAdmins = {
+            id: newId,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            entity_id: data.id,
+        };
+
+        return newData;
+    }
+
+    getOwnerNewData(data: TableEntities) {
+        const lastDataId: number = this.getOwnerLastDataId();
+        const newId: number = lastDataId === null ? 1 : lastDataId + 1;
+
+        const newData: TableOwners = {
+            id: newId,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            entity_id: data.id,
+        };
+
+        return newData;
+    }
+
+    insertList(): void {
+        super.insertList();
+
+        this.dataSet.forEach((data) => {
+            const newData = this.getAdminNewData(data);
+            this.adminDataSet.push(newData);
+        });
+
+        this.dataSet.forEach((data) => {
+            const newData = this.getOwnerNewData(data);
+            this.ownerDataSet.push(newData);
+        });
+    }
+
+    saveData(): void {
+        super.saveData();
+
+        helpers.saveJSON(
+            this.adminDataSet,
+            this.adminTableName,
+            path.resolve(__dirname, "../data/table")
+        );
+
+        helpers.saveJSON(
+            this.ownerDataSet,
+            this.ownerTableName,
+            path.resolve(__dirname, "../data/table")
+        );
+    }
+}
+
+class AgeDataMake extends DataMake {
+    protected list: AgeData[];
+    protected dataSet: TableAges[];
+
+    constructor(tableName: string) {
+        super(tableName);
+    }
+
+    getList(): AgeData[] {
+        return this.list;
+    }
+
+    setList(list: any[]): void {
+        this.list = list.reduce((results, { item: { ccceName } }) => {
+            const existObj = results.find(({ name }) => name === ccceName);
+            if (existObj === undefined) {
+                results.push({
+                    name: ccceName,
+                });
+            }
+
+            return results;
+        }, []);
+    }
+
+    getNewData(data: AgeData): TableAges {
+        const lastDataId: number = this.getLastDataId();
+        const newId: number = lastDataId === null ? 1 : lastDataId + 1;
+
+        const newData: TableAges = {
             id: newId,
             createdAt: new Date(),
             updatedAt: new Date(),
@@ -286,6 +425,7 @@ const run = (): void => {
     makeMovieData(videoList);
     makeClassData(detailList);
     makeEntityData(detailList);
+    makeAgeData(detailList);
 
     function makeImageData(detailList: any[], list: any[]): void {
         const imageDataMake = new ImageDataMake("Images");
@@ -309,10 +449,21 @@ const run = (): void => {
     }
 
     function makeEntityData(list: any[]): void {
-        const entityDataMake = new EntityDataMake("Entities");
+        const entityDataMake = new EntityDataMake(
+            "Entities",
+            "Admins",
+            "Owners"
+        );
         entityDataMake.setList(list);
         entityDataMake.insertList();
         entityDataMake.saveData();
+    }
+
+    function makeAgeData(list: any[]): void {
+        const ageDataMake = new AgeDataMake("Ages");
+        ageDataMake.setList(list);
+        ageDataMake.insertList();
+        ageDataMake.saveData();
     }
 };
 
