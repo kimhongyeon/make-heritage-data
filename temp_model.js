@@ -9,6 +9,7 @@ const Heritages = {
     quantity,
     registDate,
     address,
+    class_id,
     content,
     largeRegion_id,
     smallRegion_id,
@@ -34,25 +35,6 @@ const HeritageMovies = {
     movie_id,
 };
 
-// 종목 테이블
-const Classes = {
-    id,
-    name,
-};
-
-// 종목별 지정번호 테이블
-const ClassNumbers = {
-    id,
-    class_id,
-    heritage_id,
-    number,
-};
-
-const Entities = {
-    id,
-    name,
-};
-
 const Admins = {
     id,
     entity_id,
@@ -63,45 +45,9 @@ const Owners = {
     entity_id,
 };
 
-// 이미지 테이블
-const Images = {
-    id,
-    title,
-    url,
-};
-
-// 동영상 테이블
-const Movies = {
-    id,
-    url,
-};
-
 // 시대 테이블
 const Ages = {
     id,
-    name,
-};
-
-const ATypes = {
-    id,
-    name,
-};
-
-const BTypes = {
-    id,
-    aType_id,
-    name,
-};
-
-const CTypes = {
-    id,
-    bType_id,
-    name,
-};
-
-const DTypes = {
-    id,
-    cType_id,
     name,
 };
 

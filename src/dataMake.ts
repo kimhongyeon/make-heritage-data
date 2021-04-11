@@ -5,12 +5,18 @@ import { TableMovies } from "./database/interfaces/Movies";
 import * as path from "path";
 import { MovieData } from "./interfaces/MovieData";
 import { ClassData } from "./interfaces/ClassData";
+import { EntityData } from "./interfaces/EntityData";
 import { TableClasses } from "./database/interfaces/Classes";
+import { TableEntities } from "./database/interfaces/Entities";
 
 class DataMake {
     private tableName: string;
-    protected list: ImageData[] | MovieData[] | ClassData[];
-    protected dataSet: TableImages[] | TableMovies[] | TableClasses[];
+    protected list: ImageData[] | MovieData[] | ClassData[] | EntityData[];
+    protected dataSet:
+        | TableImages[]
+        | TableMovies[]
+        | TableClasses[]
+        | TableEntities[];
 
     constructor(tableName: string) {
         this.tableName = tableName;
@@ -188,7 +194,18 @@ class ClassDataMake extends DataMake {
         return this.list;
     }
 
-    setList(list: any[]): void {}
+    setList(list: any[]): void {
+        this.list = list.reduce((results, { item: { ccmaName } }) => {
+            const existObj = results.find(({ name }) => name === ccmaName);
+            if (existObj === undefined) {
+                results.push({
+                    name: ccmaName,
+                });
+            }
+
+            return results;
+        }, []);
+    }
 
     getNewData(data: ClassData): TableClasses {
         const lastDataId: number = this.getLastDataId();
@@ -205,16 +222,70 @@ class ClassDataMake extends DataMake {
     }
 }
 
+class EntityDataMake extends DataMake {
+    protected list: EntityData[];
+    protected dataSet: TableEntities[];
+
+    constructor(tableName: string) {
+        super(tableName);
+    }
+
+    getList(): EntityData[] {
+        return this.list;
+    }
+
+    setList(list: any[]): void {
+        this.list = list.reduce(
+            (results, { item: { ccbaPoss, ccbaAdmin } }) => {
+                const setResults = (ary: any[], str): any[] => {
+                    const existObj = ary.find(({ name }) => name === str);
+                    if (existObj === undefined) {
+                        results.push({
+                            name: str,
+                        });
+                    }
+                    return ary;
+                };
+
+                if (ccbaPoss) {
+                    results = setResults(results, ccbaPoss);
+                }
+
+                if (ccbaAdmin) {
+                    results = setResults(results, ccbaAdmin);
+                }
+
+                return results;
+            },
+            []
+        );
+    }
+
+    getNewData(data: EntityData): TableEntities {
+        const lastDataId: number = this.getLastDataId();
+        const newId: number = lastDataId === null ? 1 : lastDataId + 1;
+
+        const newData: TableEntities = {
+            id: newId,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            name: data.name,
+        };
+
+        return newData;
+    }
+}
+
 const run = (): void => {
     const list: any[] = helpers.getJSON("list") as any[];
     const detailList: any[] = helpers.getJSON("detailList") as any[];
     const imageList: any[] = helpers.getJSON("imageList") as any[];
     const videoList: any[] = helpers.getJSON("videoList") as any[];
 
-    // makeImageData(detailList, imageList);
-    // makeMovieData(videoList);
-
-    console.log(detailList[0]);
+    makeImageData(detailList, imageList);
+    makeMovieData(videoList);
+    makeClassData(detailList);
+    makeEntityData(detailList);
 
     function makeImageData(detailList: any[], list: any[]): void {
         const imageDataMake = new ImageDataMake("Images");
@@ -235,6 +306,13 @@ const run = (): void => {
         classDataMake.setList(list);
         classDataMake.insertList();
         classDataMake.saveData();
+    }
+
+    function makeEntityData(list: any[]): void {
+        const entityDataMake = new EntityDataMake("Entities");
+        entityDataMake.setList(list);
+        entityDataMake.insertList();
+        entityDataMake.saveData();
     }
 };
 
