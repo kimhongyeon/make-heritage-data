@@ -1,5 +1,4 @@
 import axios, { AxiosResponse } from "axios";
-import { appendFileSync } from "node:fs";
 import helpers from "./helpers";
 
 let LIMIT: number = 30;

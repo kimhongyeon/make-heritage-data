@@ -5,13 +5,15 @@ import { TableMovies } from "./database/interfaces/Movies";
 import * as path from "path";
 import { MovieData } from "./interfaces/MovieData";
 import { ClassData } from "./interfaces/ClassData";
-import { EntityData } from "./interfaces/EntityData";
 import { TableClasses } from "./database/interfaces/Classes";
-import { TableEntities } from "./database/interfaces/Entities";
-import { TableAdmins } from "./database/interfaces/Admins";
-import { TableOwners } from "./database/interfaces/Owners";
 import { AgeData } from "./interfaces/AgeData";
 import { TableAges } from "./database/interfaces/Ages";
+import { TableHeritageImages } from "./database/interfaces/HeritageImages";
+import { TableHeritages } from "./database/interfaces/Heritages";
+import { HeritageData } from "./interfaces/HeritageData";
+import { TableHeritageMovies } from "./database/interfaces/HeritageMovies";
+import { HeritageImageData } from "./interfaces/HeritageImageData";
+import { HeritageMovieData } from "./interfaces/HeritageMovieData";
 
 class DataMake {
     private tableName: string;
@@ -19,14 +21,14 @@ class DataMake {
         | ImageData[]
         | MovieData[]
         | ClassData[]
-        | EntityData[]
-        | AgeData[];
+        | AgeData[]
+        | HeritageData[];
     protected dataSet:
         | TableImages[]
         | TableMovies[]
         | TableClasses[]
-        | TableEntities[]
-        | TableAges[];
+        | TableAges[]
+        | TableHeritages[];
 
     constructor(tableName: string) {
         this.tableName = tableName;
@@ -40,9 +42,9 @@ class DataMake {
 
     getNewData(data: object): any {}
 
-    getLastDataId(): number {
-        if (this.dataSet.length > 0) {
-            return this.dataSet[this.dataSet.length - 1].id;
+    getLastDataId(dataSet): number {
+        if (dataSet.length > 0) {
+            return dataSet[dataSet.length - 1].id;
         } else {
             return null;
         }
@@ -108,15 +110,14 @@ class ImageDataMake extends DataMake {
     }
 
     getNewData(data: ImageData): TableImages {
-        const lastDataId: number = this.getLastDataId();
+        const lastDataId: number = this.getLastDataId(this.dataSet);
         const newId: number = lastDataId === null ? 1 : lastDataId + 1;
 
         const newData: TableImages = {
             id: newId,
             createdAt: new Date(),
             updatedAt: new Date(),
-            title: data.title,
-            url: data.url,
+            ...data,
         };
 
         return newData;
@@ -138,25 +139,17 @@ class MovieDataMake extends DataMake {
     setList(list: any[]): void {
         this.list = list.reduce(
             (results: MovieData[], { item: { videoUrl } }: any) => {
-                const isUrl = (url: string): boolean => {
-                    const test: string = url.replace(
-                        "http://116.67.83.213/webdata/file_data/media_data/videos/",
-                        ""
-                    );
-                    return test.length > 1;
-                };
-
                 let urls: MovieData[] = [];
 
                 if (typeof videoUrl === "string") {
-                    if (isUrl(videoUrl))
+                    if (helpers.isMovieUrl(videoUrl))
                         urls.push({
                             url: videoUrl,
                         });
                 } else {
                     urls = videoUrl.reduce(
                         (results2: MovieData[], url: string) => {
-                            if (isUrl(url)) {
+                            if (helpers.isMovieUrl(url)) {
                                 results2.push({
                                     url: url,
                                 });
@@ -178,14 +171,14 @@ class MovieDataMake extends DataMake {
     }
 
     getNewData(data: MovieData): TableMovies {
-        const lastDataId: number = this.getLastDataId();
+        const lastDataId: number = this.getLastDataId(this.dataSet);
         const newId: number = lastDataId === null ? 1 : lastDataId + 1;
 
         const newData: TableMovies = {
             id: newId,
             createdAt: new Date(),
             updatedAt: new Date(),
-            url: data.url,
+            ...data,
         };
 
         return newData;
@@ -218,200 +211,259 @@ class ClassDataMake extends DataMake {
     }
 
     getNewData(data: ClassData): TableClasses {
-        const lastDataId: number = this.getLastDataId();
+        const lastDataId: number = this.getLastDataId(this.dataSet);
         const newId: number = lastDataId === null ? 1 : lastDataId + 1;
 
         const newData: TableClasses = {
             id: newId,
             createdAt: new Date(),
             updatedAt: new Date(),
-            name: data.name,
+            ...data,
         };
 
         return newData;
     }
 }
 
-class EntityDataMake extends DataMake {
-    protected list: EntityData[];
-    protected dataSet: TableEntities[];
+class HeritageDataMake extends DataMake {
+    protected list: HeritageData[];
+    protected dataSet: TableHeritages[];
 
-    private adminTableName: string;
-    private adminDataSet: TableAdmins[];
+    private imageTableName: string;
+    private movieTableName: string;
 
-    private ownerTableName: string;
-    private ownerDataSet: TableOwners[];
+    private imageList: HeritageImageData[];
+    private imageDataSet: TableHeritageImages[];
+
+    private movieList: HeritageMovieData[];
+    private movieDataSet: TableHeritageMovies[];
+
+    private tableClasses: TableClasses[];
+    private tableImages: TableImages[];
+    private tableMovies: TableMovies[];
 
     constructor(
         tableName: string,
-        adminTableName: string,
-        ownerTableName: string
+        imageTableName: string,
+        movieTableName: string
     ) {
         super(tableName);
-        this.adminTableName = adminTableName;
-        this.ownerTableName = ownerTableName;
 
-        this.adminDataSet = [];
-        this.ownerDataSet = [];
+        this.imageTableName = imageTableName;
+        this.movieTableName = movieTableName;
+
+        this.imageList = [];
+        this.imageDataSet = [];
+
+        this.movieList = [];
+        this.movieDataSet = [];
+
+        this.tableClasses = helpers.getJSON("table/Classes") as TableClasses[];
+        this.tableImages = helpers.getJSON("table/Images") as TableImages[];
+        this.tableMovies = helpers.getJSON("table/Movies") as TableMovies[];
     }
 
-    getList(): EntityData[] {
+    getList(): HeritageData[] {
         return this.list;
     }
 
     setList(list: any[]): void {
-        this.list = list.reduce(
-            (results, { item: { ccbaPoss, ccbaAdmin } }) => {
-                const setResults = (ary: any[], str: string): any[] => {
-                    const existObj = ary.find(({ name }) => name === str);
-                    if (existObj === undefined) {
-                        results.push({
-                            name: str,
-                        });
-                    }
-                    return ary;
-                };
+        this.list = list.reduce((results: HeritageData[], obj) => {
+            const classObj: TableClasses = this.tableClasses.find(
+                ({ name }) => name === obj.item.ccmaName
+            );
+            const class_id: number =
+                classObj !== undefined ? classObj.id : undefined;
 
-                if (ccbaPoss) {
-                    results = setResults(results, ccbaPoss);
-                }
-
-                if (ccbaAdmin) {
-                    results = setResults(results, ccbaAdmin);
-                }
-
-                return results;
-            },
-            []
-        );
-    }
-
-    getAdminLastDataId(): number {
-        if (this.adminDataSet.length > 0) {
-            return this.adminDataSet[this.adminDataSet.length - 1].id;
-        } else {
-            return null;
-        }
-    }
-
-    getOwnerLastDataId(): number {
-        if (this.ownerDataSet.length > 0) {
-            return this.ownerDataSet[this.ownerDataSet.length - 1].id;
-        } else {
-            return null;
-        }
-    }
-
-    getNewData(data: EntityData): TableEntities {
-        const lastDataId: number = this.getLastDataId();
-        const newId: number = lastDataId === null ? 1 : lastDataId + 1;
-
-        const newData: TableEntities = {
-            id: newId,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            name: data.name,
-        };
-
-        return newData;
-    }
-
-    getAdminNewData(data: TableEntities) {
-        const lastDataId: number = this.getAdminLastDataId();
-        const newId: number = lastDataId === null ? 1 : lastDataId + 1;
-
-        const newData: TableAdmins = {
-            id: newId,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            entity_id: data.id,
-        };
-
-        return newData;
-    }
-
-    getOwnerNewData(data: TableEntities) {
-        const lastDataId: number = this.getOwnerLastDataId();
-        const newId: number = lastDataId === null ? 1 : lastDataId + 1;
-
-        const newData: TableOwners = {
-            id: newId,
-            createdAt: new Date(),
-            updatedAt: new Date(),
-            entity_id: data.id,
-        };
-
-        return newData;
-    }
-
-    insertList(): void {
-        super.insertList();
-
-        this.dataSet.forEach((data) => {
-            const newData = this.getAdminNewData(data);
-            this.adminDataSet.push(newData);
-        });
-
-        this.dataSet.forEach((data) => {
-            const newData = this.getOwnerNewData(data);
-            this.ownerDataSet.push(newData);
-        });
-    }
-
-    saveData(): void {
-        super.saveData();
-
-        helpers.saveJSON(
-            this.adminDataSet,
-            this.adminTableName,
-            path.resolve(__dirname, "../data/table")
-        );
-
-        helpers.saveJSON(
-            this.ownerDataSet,
-            this.ownerTableName,
-            path.resolve(__dirname, "../data/table")
-        );
-    }
-}
-
-class AgeDataMake extends DataMake {
-    protected list: AgeData[];
-    protected dataSet: TableAges[];
-
-    constructor(tableName: string) {
-        super(tableName);
-    }
-
-    getList(): AgeData[] {
-        return this.list;
-    }
-
-    setList(list: any[]): void {
-        this.list = list.reduce((results, { item: { ccceName } }) => {
-            const existObj = results.find(({ name }) => name === ccceName);
-            if (existObj === undefined) {
-                results.push({
-                    name: ccceName,
-                });
-            }
+            results.push({
+                name: obj.item.ccbaMnm1,
+                nameChin: obj.item.ccbaMnm2,
+                longitude: Number(obj.longitude),
+                latitude: Number(obj.latitude),
+                quantity: obj.item.ccbaQuan,
+                registDate: helpers.strToDate(obj.item.ccbaAsdt),
+                address: obj.item.ccbaLcad,
+                content: obj.item.content,
+                admin: obj.item.ccbaAdmin,
+                owner: obj.item.ccbaPoss,
+                class_id,
+            });
 
             return results;
         }, []);
     }
 
-    getNewData(data: AgeData): TableAges {
-        const lastDataId: number = this.getLastDataId();
+    setImageList(list: any[], imageList: any[]): void {
+        for (const index in list) {
+            console.log(index);
+            const rawObj = list[index];
+            const classObj = this.dataSet[index];
+
+            this.imageList = imageList.reduce(
+                (
+                    v: HeritageImageData[],
+                    { ccbaKdcd, ccbaAsno, ccbaCtcd, item: { imageUrl } }
+                ) => {
+                    if (
+                        rawObj.ccbaKdcd === ccbaKdcd &&
+                        rawObj.ccbaAsno === ccbaAsno &&
+                        rawObj.ccbaCtcd === ccbaCtcd
+                    ) {
+                        if (typeof imageUrl === "string") {
+                            v.push({
+                                heritage_id: classObj.id,
+                                image_id: this.tableImages.find(
+                                    (v) =>
+                                        v.url === helpers.httpToHttps(imageUrl)
+                                ).id,
+                            });
+                        } else {
+                            v = imageUrl.reduce(
+                                (vv: HeritageImageData[], url: string) => {
+                                    vv.push({
+                                        heritage_id: classObj.id,
+                                        image_id: this.tableImages.find(
+                                            (v) =>
+                                                v.url ===
+                                                helpers.httpToHttps(url)
+                                        ).id,
+                                    });
+
+                                    return vv;
+                                },
+                                v
+                            );
+                        }
+                    }
+
+                    return v;
+                },
+                this.imageList
+            );
+        }
+    }
+
+    setMovieList(list: any[], movieList: any[]): void {
+        for (const index in list) {
+            console.log(index);
+            const rawObj = list[index];
+            const classObj = this.dataSet[index];
+
+            this.movieList = movieList.reduce(
+                (
+                    v: HeritageMovieData[],
+                    { ccbaKdcd, ccbaAsno, ccbaCtcd, item: { videoUrl } }
+                ) => {
+                    if (
+                        rawObj.ccbaKdcd === ccbaKdcd &&
+                        rawObj.ccbaAsno === ccbaAsno &&
+                        rawObj.ccbaCtcd === ccbaCtcd
+                    ) {
+                        if (typeof videoUrl === "string") {
+                            if (helpers.isMovieUrl(videoUrl)) {
+                                v.push({
+                                    heritage_id: classObj.id,
+                                    movie_id: this.tableMovies.find(
+                                        (v) => v.url === videoUrl
+                                    ).id,
+                                });
+                            }
+                        } else {
+                            v = videoUrl.reduce(
+                                (vv: HeritageMovieData[], url: string) => {
+                                    if (helpers.isMovieUrl(url)) {
+                                        vv.push({
+                                            heritage_id: classObj.id,
+                                            movie_id: this.tableMovies.find(
+                                                (v) => v.url === url
+                                            ).id,
+                                        });
+                                    }
+
+                                    return vv;
+                                },
+                                v
+                            );
+                        }
+                    }
+
+                    return v;
+                },
+                this.movieList
+            );
+        }
+    }
+
+    getNewData(data: HeritageData): TableHeritages {
+        const lastDataId: number = this.getLastDataId(this.dataSet);
         const newId: number = lastDataId === null ? 1 : lastDataId + 1;
 
-        const newData: TableAges = {
+        const newData: TableHeritages = {
             id: newId,
             createdAt: new Date(),
             updatedAt: new Date(),
-            name: data.name,
+            ...data,
         };
 
         return newData;
+    }
+
+    getImageNewData(data: HeritageImageData): TableHeritageImages {
+        const lastDataId: number = this.getLastDataId(this.imageDataSet);
+        const newId: number = lastDataId === null ? 1 : lastDataId + 1;
+
+        const newData: TableHeritageImages = {
+            id: newId,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            ...data,
+        };
+
+        return newData;
+    }
+
+    getMovieNewData(data: HeritageMovieData): TableHeritageMovies {
+        const lastDataId: number = this.getLastDataId(this.movieDataSet);
+        const newId: number = lastDataId === null ? 1 : lastDataId + 1;
+
+        const newData: TableHeritageMovies = {
+            id: newId,
+            createdAt: new Date(),
+            updatedAt: new Date(),
+            ...data,
+        };
+
+        return newData;
+    }
+
+    insertImageList(): void {
+        this.imageList.forEach((data) => {
+            const newData = this.getImageNewData(data);
+            this.imageDataSet.push(newData);
+        });
+    }
+
+    insertMovieList(): void {
+        this.movieList.forEach((data) => {
+            const newData = this.getMovieNewData(data);
+            this.movieDataSet.push(newData);
+        });
+    }
+
+    saveImageData(): void {
+        helpers.saveJSON(
+            this.imageDataSet,
+            this.imageTableName,
+            path.resolve(__dirname, "../data/table")
+        );
+    }
+
+    saveMovieData(): void {
+        helpers.saveJSON(
+            this.movieDataSet,
+            this.movieTableName,
+            path.resolve(__dirname, "../data/table")
+        );
     }
 }
 
@@ -424,8 +476,7 @@ const run = (): void => {
     makeImageData(detailList, imageList);
     makeMovieData(videoList);
     makeClassData(detailList);
-    makeEntityData(detailList);
-    makeAgeData(detailList);
+    makeHeritageData(detailList, imageList, videoList);
 
     function makeImageData(detailList: any[], list: any[]): void {
         const imageDataMake = new ImageDataMake("Images");
@@ -448,22 +499,23 @@ const run = (): void => {
         classDataMake.saveData();
     }
 
-    function makeEntityData(list: any[]): void {
-        const entityDataMake = new EntityDataMake(
-            "Entities",
-            "Admins",
-            "Owners"
+    function makeHeritageData(list: any[], imageList: any[], videoList: any[]) {
+        const heritageDataMake = new HeritageDataMake(
+            "Heritages",
+            "HeritageImages",
+            "HeritageMovies"
         );
-        entityDataMake.setList(list);
-        entityDataMake.insertList();
-        entityDataMake.saveData();
-    }
+        heritageDataMake.setList(list);
+        heritageDataMake.insertList();
+        heritageDataMake.saveData();
 
-    function makeAgeData(list: any[]): void {
-        const ageDataMake = new AgeDataMake("Ages");
-        ageDataMake.setList(list);
-        ageDataMake.insertList();
-        ageDataMake.saveData();
+        heritageDataMake.setImageList(list, imageList);
+        heritageDataMake.insertImageList();
+        heritageDataMake.saveImageData();
+
+        heritageDataMake.setMovieList(list, videoList);
+        heritageDataMake.insertMovieList();
+        heritageDataMake.saveMovieData();
     }
 };
 

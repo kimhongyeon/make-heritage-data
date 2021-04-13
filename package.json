@@ -6,8 +6,8 @@
   "scripts": {
     "build": "tsc --build",
     "clean": "tsc --build --clean",
-    "prestart": "npm run build",
-    "start": "tsc-watch --onSuccess 'node dist/app.js'"
+    "predev": "npm run build",
+    "dev": "tsc-watch --onSuccess 'node dist/app.js'"
   },
   "author": "Kim Hongyeon",
   "license": "ISC",

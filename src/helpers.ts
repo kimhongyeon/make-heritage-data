@@ -27,9 +27,27 @@ const httpToHttps = (url: string): string => {
     return url.replace(/http/, "https");
 };
 
+const strToDate = (str: string): Date => {
+    const year: number = Number(str.substring(0, 4));
+    const month: number = Number(str.substring(4, 6)) - 1;
+    const day: number = Number(str.substring(6, 8));
+
+    return new Date(year, month, day);
+};
+
+const isMovieUrl = (url: string): boolean => {
+    const test: string = url.replace(
+        "http://116.67.83.213/webdata/file_data/media_data/videos/",
+        ""
+    );
+    return test.length > 1;
+};
+
 export default {
     xmlToJSON,
     saveJSON,
     getJSON,
     httpToHttps,
+    strToDate,
+    isMovieUrl,
 };
