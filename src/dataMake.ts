@@ -6,8 +6,6 @@ import * as path from "path";
 import { MovieData } from "./interfaces/MovieData";
 import { ClassData } from "./interfaces/ClassData";
 import { TableClasses } from "./database/interfaces/Classes";
-import { AgeData } from "./interfaces/AgeData";
-import { TableAges } from "./database/interfaces/Ages";
 import { TableHeritageImages } from "./database/interfaces/HeritageImages";
 import { TableHeritages } from "./database/interfaces/Heritages";
 import { HeritageData } from "./interfaces/HeritageData";
@@ -17,17 +15,11 @@ import { HeritageMovieData } from "./interfaces/HeritageMovieData";
 
 class DataMake {
     private tableName: string;
-    protected list:
-        | ImageData[]
-        | MovieData[]
-        | ClassData[]
-        | AgeData[]
-        | HeritageData[];
+    protected list: ImageData[] | MovieData[] | ClassData[] | HeritageData[];
     protected dataSet:
         | TableImages[]
         | TableMovies[]
         | TableClasses[]
-        | TableAges[]
         | TableHeritages[];
 
     constructor(tableName: string) {
