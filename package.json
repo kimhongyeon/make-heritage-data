@@ -7,13 +7,14 @@
     "build": "tsc --build",
     "clean": "tsc --build --clean",
     "predev": "npm run build",
-    "dev": "tsc-watch --onSuccess 'node dist/app.js'"
+    "start": "tsc-watch --onSuccess 'node dist/app.js'"
   },
   "author": "Kim Hongyeon",
   "license": "ISC",
   "dependencies": {
     "@types/node": "^14.14.37",
     "axios": "^0.21.1",
+    "dotenv": "^8.2.0",
     "fast-xml-parser": "^3.19.0"
   }
 }

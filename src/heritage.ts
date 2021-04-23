@@ -1,8 +1,10 @@
 import axios, { AxiosResponse } from "axios";
 import helpers from "./helpers";
 
-let LIMIT: number = 30;
-let TOTAL_PAGE: number = 100;
+const LIMIT: number = process.env.LIMIT ? Number(process.env.LIMIT) : 10;
+const TOTAL_PAGE: number = process.env.TOTAL_PAGE
+    ? Number(process.env.TOTAL_PAGE)
+    : 5;
 
 class Heritage {
     private readonly apis = {
@@ -106,53 +108,40 @@ class Heritage {
     }
 }
 
-const run = async (
-    limit?: number,
-    totalPage?: number,
-    isRun?: boolean
-): Promise<void> => {
-    if (limit !== undefined) {
-        LIMIT = limit;
+const run = async (): Promise<void> => {
+    let heritageList: Heritage[] = [];
+
+    for (let page = 1; page <= TOTAL_PAGE; page++) {
+        const heritage = new Heritage(page, LIMIT);
+
+        await heritage.callAPIList();
+        await heritage.callAPIDetailList();
+        await heritage.callAPIImageList();
+        await heritage.callAPIVideoList();
+
+        heritageList.push(heritage);
+
+        console.log(`${page} / ${TOTAL_PAGE}`);
     }
-    if (totalPage !== undefined) {
-        TOTAL_PAGE = totalPage;
+
+    let result: any = {
+        list: [],
+        detailList: [],
+        imageList: [],
+        videoList: [],
+    };
+
+    for (const heritage of heritageList) {
+        result.list = result.list.concat(heritage.getList());
+        result.detailList = result.list.concat(heritage.getDetailList());
+        result.imageList = result.list.concat(heritage.getImageList());
+        result.videoList = result.list.concat(heritage.getVideoList());
     }
 
-    if (isRun) {
-        let heritageList: Heritage[] = [];
-
-        for (let page = 1; page <= TOTAL_PAGE; page++) {
-            const heritage = new Heritage(page, LIMIT);
-
-            await heritage.callAPIList();
-            await heritage.callAPIDetailList();
-            await heritage.callAPIImageList();
-            await heritage.callAPIVideoList();
-
-            heritageList.push(heritage);
-
-            console.log(`${page} / ${TOTAL_PAGE}`);
-        }
-
-        let result: any = {
-            list: [],
-            detailList: [],
-            imageList: [],
-            videoList: [],
-        };
-
-        for (const heritage of heritageList) {
-            result.list = result.list.concat(heritage.getList());
-            result.detailList = result.list.concat(heritage.getDetailList());
-            result.imageList = result.list.concat(heritage.getImageList());
-            result.videoList = result.list.concat(heritage.getVideoList());
-        }
-
-        Heritage.saveList(result.list);
-        Heritage.saveDetailList(result.detailList);
-        Heritage.saveImageList(result.imageList);
-        Heritage.saveVideoList(result.videoList);
-    }
+    Heritage.saveList(result.list);
+    Heritage.saveDetailList(result.detailList);
+    Heritage.saveImageList(result.imageList);
+    Heritage.saveVideoList(result.videoList);
 };
 
 export default {
